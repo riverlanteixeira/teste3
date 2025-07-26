@@ -2,43 +2,56 @@
 
 AFRAME.registerComponent('mundo-invertido-particulas', {
     schema: {
-        count: {type: 'number', default: 500},
-        size: {type: 'number', default: 0.05},
-        area: {type: 'number', default: 10}
+        count: { type: 'number', default: 500 },
+        size: { type: 'number', default: 0.05 },
+        area: { type: 'number', default: 10 }
     },
 
-    // SUBSTITUA A FUNÇÃO 'init' ANTIGA POR ESTA
+    /**
+     * Função que gera a textura da partícula dinamicamente.
+     * @returns {HTMLCanvasElement} - Um elemento canvas com a partícula desenhada.
+     */
+    generateParticleTexture: function () {
+        // 1. Criamos um elemento canvas na memória (ele não aparece na página)
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const size = 64; // Tamanho da textura em pixels (64x64 é suficiente)
+        canvas.width = size;
+        canvas.height = size;
+
+        // 2. Criamos um gradiente radial (círculo que vai do centro para as bordas)
+        const gradient = ctx.createRadialGradient(
+            size / 2, size / 2, 0, // Círculo inicial (centro)
+            size / 2, size / 2, size / 2 // Círculo final (borda)
+        );
+
+        // 3. Definimos as cores do gradiente para criar o efeito "suave"
+        // Começa 100% branco e opaco no centro
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+        // Termina 100% branco e totalmente transparente nas bordas
+        gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+
+        // 4. Preenchemos o canvas com o gradiente
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, size, size);
+
+        // 5. Retornamos o canvas pronto para ser usado como textura
+        return canvas;
+    },
+
     init: function () {
         const data = this.data;
         const el = this.el;
 
-        // --- INÍCIO DA MODIFICAÇÃO ---
-
-        // 1. Criar o código da partícula usando SVG
-        // Este SVG desenha um gradiente radial (círculo que vai de branco a transparente)
-        const svgString = `
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-                <defs>
-                    <radialGradient id="grad" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
-                        <stop offset="0%" style="stop-color:rgb(255,255,255);stop-opacity:1" />
-                        <stop offset="100%" style="stop-color:rgb(255,255,255);stop-opacity:0" />
-                    </radialGradient>
-                </defs>
-                <circle cx="50" cy="50" r="50" fill="url(#grad)"/>
-            </svg>`;
-
-        // 2. Converter a string do SVG para um Data URI
-        // btoa() codifica a string em Base64
-        const dataUri = 'data:image/svg+xml;base64,' + window.btoa(svgString);
-
-        // 3. Usar o Data URI para carregar a textura
-        const textureLoader = new THREE.TextureLoader();
-        // O loader carrega o Data URI como se fosse um arquivo .png
-        const particleTexture = textureLoader.load(dataUri);
+        // --- GERAÇÃO DA TEXTURA VIA CÓDIGO ---
+        // Aqui chamamos nossa nova função para criar a textura
+        const particleCanvas = this.generateParticleTexture();
         
-        // --- FIM DA MODIFICAÇÃO ---
+        // Em vez de usar TextureLoader, usamos CanvasTexture, que é feita para isso
+        const particleTexture = new THREE.CanvasTexture(particleCanvas);
+        // --- FIM DA GERAÇÃO DA TEXTURA ---
 
-        // O resto do código permanece o mesmo
+        // O resto do código é o mesmo de antes
         this.geometry = new THREE.BufferGeometry();
         const positions = [];
 
@@ -52,32 +65,3 @@ AFRAME.registerComponent('mundo-invertido-particulas', {
         this.geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
 
         this.material = new THREE.PointsMaterial({
-            color: '#FFFFFF',
-            size: data.size,
-            map: particleTexture, // A textura agora vem do nosso SVG
-            blending: THREE.AdditiveBlending,
-            depthWrite: false,
-            transparent: true,
-            opacity: 0.7
-        });
-
-        this.points = new THREE.Points(this.geometry, this.material);
-        el.setObject3D('particles', this.points);
-    },
-
-    // A função tick permanece exatamente a mesma
-    tick: function (time, timeDelta) {
-        const positions = this.geometry.attributes.position.array;
-        const area = this.data.area;
-
-        for (let i = 0; i < positions.length; i += 3) {
-            positions[i + 1] += 0.001;
-            positions[i] += Math.sin(time * 0.0005 + i) * 0.0005;
-
-            if (positions[i + 1] > area / 2) {
-                positions[i + 1] = -area / 2;
-            }
-        }
-        this.geometry.attributes.position.needsUpdate = true;
-    }
-});
