@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Mundo Invertido - AR</title>
+    <meta name="description" content="Efeito Mundo Invertido em WebAR">
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="particulas.js"></script>
+</head>
+<body>
+    <a-scene ar-mode-ui="enabled: true">
+
+        <a-camera>
+            <a-sphere 
+                radius="10" 
+                material="color: #2E8B57; side: back; transparent: true; opacity: 0.15"
+                shader="flat">
+            </a-sphere>
+        </a-camera>
+
+        <a-entity 
+            position="0 1.5 -2" 
+            mundo-invertido-particulas="count: 500; size: 0.05; area: 15">
+        </a-entity>
+
+    </a-scene>
+</body>
+</html>
